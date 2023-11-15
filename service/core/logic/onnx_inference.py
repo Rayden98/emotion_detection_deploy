@@ -1,18 +1,23 @@
 import onnxruntime as rt
 import cv2
 import numpy as np
+import time
+import service.main as s
 
 def emotions_detector(img_array):
-    providers=['CUDAExecutionProvider']
-    m_q = rt.InferenceSession("vit_keras.onnx", providers=providers)
     
-    test_image = cv2.resize(test_image, (256, 256))
+    if len(img_array.shape) ==2:
+        img_array=cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGB)
+    time_init = time.time()
+    
+    test_image = cv2.resize(img_array, (256, 256))
     im = np.float32(test_image)
     img_array = np.expand_dims(im, axis = 0)
-    print(img_array.shape)
+
+    time_elapsed_preprocess = time.time() - time_init
     
-    onnx_pred = m_q.run(['dense'], {"input":img_array})
-    print(np.argmax(onnx_pred[0][0]))
+    onnx_pred = s.m_q.run(['dense'], {"input":img_array})
+    time_elapsed=time.time() - time_init
     
     emotion=""
     if np.argmax(onnx_pred[0][0]) ==0:
@@ -22,4 +27,8 @@ def emotions_detector(img_array):
     else:
         emotion="sad"
         
-    return {"emotion" : emotion}
+    return {
+        "emotion" : emotion,
+        "time_elapsed": str(time_elapsed),
+        "time_elapsed_preprocess": str(time_elapsed_preprocess)
+        }
